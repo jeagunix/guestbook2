@@ -9,11 +9,46 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import kr.co.itcen.guestbook.vo.GuestBookVo;
+import kr.co.itcen.guestbook.vo.GuestbookVo;
 
-
-public class GuestBookDao {
-	public Boolean insert(GuestBookVo vo) {
+public class GuestbookDao {
+	
+	public void delete(GuestbookVo vo) {
+		Connection connection = null;
+		PreparedStatement pstmt = null;
+		
+		try {
+			connection = getConnection();
+			
+			String sql =
+				" delete" +
+				"   from guestbook" +
+				"  where no = ?" +
+				"    and password= ?";
+			
+			pstmt = connection.prepareStatement(sql);
+			pstmt.setLong(1, vo.getNo());
+			pstmt.setString(2, vo.getPassword());
+			
+			pstmt.executeUpdate();
+			
+		} catch (SQLException e) {
+			System.out.println("error:" + e);
+		} finally {
+			try {
+				if(pstmt != null) {
+					pstmt.close();
+				}
+				if(connection != null) {
+					connection.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}		
+	}	
+	
+	public Boolean insert(GuestbookVo vo) {
 		Boolean result = false;
 		
 		Connection connection = null;
@@ -30,7 +65,6 @@ public class GuestBookDao {
 			pstmt.setString(1, vo.getName());
 			pstmt.setString(2, vo.getPassword());
 			pstmt.setString(3, vo.getText());
-			
 			int count = pstmt.executeUpdate();
 			result = (count == 1);
 			
@@ -67,55 +101,8 @@ public class GuestBookDao {
 		return result;		
 	}
 	
-	private Connection getConnection() throws SQLException {
-		Connection connection = null;
-		
-		try {
-			Class.forName("org.mariadb.jdbc.Driver");
-		
-			String url = "jdbc:mariadb://localhost:3306/webdb?characterEncoding=utf8";
-			connection = DriverManager.getConnection(url, "webdb", "webdb");
-		
-		} catch (ClassNotFoundException e) {
-			System.out.println("Fail to Loading Driver:" + e);
-		}
-		
-		return connection;
-	}
-
-	
-	public void delete(GuestBookVo vo) {
-		Connection connection = null;
-		PreparedStatement pstmt = null;
-		
-		try {
-			connection = getConnection();
-			
-			String sql = "delete from guestbook where no=? and password=?";
-			pstmt = connection.prepareStatement(sql);
-			pstmt.setLong(1, vo.getNo());
-			pstmt.setString(2, vo.getPassword());
-			
-			pstmt.executeUpdate();
-			
-		} catch (SQLException e) {
-			System.out.println("error:" + e);
-		} finally {
-			try {
-				if(pstmt != null) {
-					pstmt.close();
-				}
-				if(connection != null) {
-					connection.close();
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}		
-	}
-
-	public List<GuestBookVo> getList() {
-		List<GuestBookVo> result = new ArrayList<GuestBookVo>();
+	public List<GuestbookVo> getList() {
+		List<GuestbookVo> result = new ArrayList<GuestbookVo>();
 		
 		Connection connection = null;
 		PreparedStatement pstmt = null;
@@ -124,9 +111,10 @@ public class GuestBookDao {
 		try {
 			connection = getConnection();
 			
-			String sql = "select no, name, contents, password, date_format(reg_date, '%Y-%M-%d %h:%i:%s')\r\n" + 
-						 "  from guestbook\r\n" + 
-					     " order by no desc";
+			String sql = 
+				"   select no, name, contents, date_format(reg_date, '%Y-%m-%d %h:%i:%s')" +
+				"     from guestbook" + 
+				" order by reg_date desc";
 			pstmt = connection.prepareStatement(sql);
 			
 			rs = pstmt.executeQuery();
@@ -134,16 +122,14 @@ public class GuestBookDao {
 			while(rs.next()){
 				Long no = rs.getLong(1);
 				String name = rs.getString(2);
-				String text = rs.getString(3);
-				String password = rs.getString(4);
-				String dateTime = rs.getString(5);
+				String contents = rs.getString(3);
+				String regDate = rs.getString(4);
 				
-				GuestBookVo vo= new GuestBookVo();
+				GuestbookVo vo= new GuestbookVo();
 				vo.setNo(no);
 				vo.setName(name);
-				vo.setText(text);
-				vo.setPassword(password);
-				vo.setDateTime(dateTime);
+				vo.setText(contents);
+				vo.setDateTime(regDate);
 				
 				result.add(vo);
 			}
@@ -167,4 +153,21 @@ public class GuestBookDao {
 		
 		return result;
 	}	
+	
+	private Connection getConnection() throws SQLException {
+		Connection connection = null;
+		
+		try {
+			Class.forName("org.mariadb.jdbc.Driver");
+		
+			String url = "jdbc:mariadb://192.168.1.43:3306/webdb?characterEncoding=utf8";
+			connection = DriverManager.getConnection(url, "webdb", "webdb");
+		
+		} catch (ClassNotFoundException e) {
+			System.out.println("Fail to Loading Driver:" + e);
+		}
+		
+		return connection;
+	}
+	
 }
